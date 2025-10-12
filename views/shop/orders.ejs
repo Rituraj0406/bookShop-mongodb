@@ -4,22 +4,28 @@
     <body>
         <%- include('../includes/navigation.ejs') %>
         <main>
-            <% if (orders.length > 0) { %>
-                <ul class="orders__list">
+            <% if (orders.length <= 0) { %>
+                <h1>Nothing there!</h1>
+            <% } else { %>
+                <ul class="orders">
                     <% orders.forEach(order => { %>
                         <li class="order__item">
-                            <h1>Order ID: <%= order._id %></h1>
-                            <h2>Products:</h2>
-                            <ul>
-                                <% order.items.forEach(p => { %>
-                                    <li><%= p.title %> (x<%= p.quantity %>)</li>
-                                <% }) %>
+                            <h1>Order - # <%= order._id %></h1>
+                            <ul class="orders__products">
+                                <% order.products.forEach(p => { %>
+                                    <li class="orders__products-item"><%= p.product.title %> (<%= p.quantity %>) -- $<%= p.quantity * p.product.price %></li>
+                                <% }); %>
                             </ul>
                         </li>
                     <% }) %>
                 </ul>
-            <% } else { %>    
-            <h1>Nothing there!</h1>
+                <div>
+                    <h2>Total Price: $<%= orders.reduce((total, order) => {
+                        return total + order.products.reduce((sum, p) => {
+                            return sum + p.quantity * p.product.price;
+                        }, 0);
+                    }, 0) %></h2>
+                </div>
             <% } %>
         </main>
         <%- include('../includes/end.ejs') %>
