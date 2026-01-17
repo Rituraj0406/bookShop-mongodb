@@ -1,15 +1,14 @@
 const Product = require('../models/product');
 const Order = require('../models/order');
+const csurf = require('csurf');
 
 exports.getProducts = (req, res, next) => {
   Product.find()
     .then(products => {
-      console.log('products--', products);
       res.render('shop/product-list', {
         prods: products,
         pageTitle: 'All Products',
-        path: '/products',
-        isAuthenticated: req.session.isLoggedIn
+        path: '/products'
       })
     })
     .catch(err =>
@@ -21,12 +20,10 @@ exports.getProductById = (req, res, next) => {
   const productId = req.params.productId;
   Product.findById(productId)
     .then((product) => {
-      // console.log('product--', product);
       res.render('shop/product-detail', {
         product: product,
         pageTitle: product.title,
-        path: '/products',
-        isAuthenticated: req.session.isLoggedIn
+        path: '/products'
       });
     })
     .catch(err => console.log(err));
@@ -38,8 +35,7 @@ exports.getIndex = (req, res, next) => {
       res.render('shop/index', {
         prods: products,
         pageTitle: 'Shop',
-        path: '/',
-        isAuthenticated: req.session.isLoggedIn
+        path: '/'
       })
     })
     .catch(err =>
@@ -50,13 +46,11 @@ exports.getIndex = (req, res, next) => {
 exports.getCart = (req, res, next) => {
   req.user.populate('cart.items.productId')
     .then(user => {
-      console.log('cart products--', user.cart.items);
       const products = user.cart.items;
       res.render('shop/cart', {
         path: '/cart',
         pageTitle: 'Your Cart',
-        products: products,
-        isAuthenticated: req.session.isLoggedIn
+        products: products
       });
     })
     .catch(err => console.log(err));
@@ -69,7 +63,6 @@ exports.postCart = (req, res, next) => {
       return req.user.addToCart(product);
     })
     .then(result => {
-      console.log('Added to cart', result);
       res.redirect('/cart');
     })
     .catch(err => console.log(err));
@@ -88,13 +81,13 @@ exports.postOrder = (req, res, next) => {
   req.user
     .populate('cart.items.productId')
     .then(user => {
-      console.log('user--', user.cart.items);
       const products = user.cart.items.map(i => {
         return { quantity: i.quantity, product: {...i.productId._doc} };
       });
       const order = new Order({
         user: {
-          name: req.user.name,
+          // name: req.user.name,
+          email: req.user.email,
           userId: req.user // mongoose will automatically pick the _id property
         },
         products: products
@@ -113,12 +106,10 @@ exports.postOrder = (req, res, next) => {
 exports.getOrders = (req, res, next) => {
   Order.find({'user.userId': req.user._id})
     .then(orders => {
-      console.log('orders--', orders);
       res.render('shop/orders', {
         path: '/orders',
         pageTitle: 'Your Orders',
-        orders: orders,
-        isAuthenticated: req.session.isLoggedIn
+        orders: orders
       });
     })
     .catch(err => console.log(err));

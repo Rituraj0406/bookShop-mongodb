@@ -218,6 +218,10 @@ form {
   #side-menu-toggle {
     display: none;
   }
+
+  .user-message{
+    width: 30rem;
+  }
 }
 
 .product-image {
@@ -282,4 +286,17 @@ form {
 .orders__products-item {
   padding: 8px;
   border: 2px solid #00695c;
+}
+
+.user-message{
+  margin: auto;
+  width: 50%;
+  border: 1px solid #04279a;
+  background-color: #7282b6;
+  padding: 10px;
+} 
+
+.user-message--error{
+  border-color: #a90404;
+  background-color: #e27b7b;
 }
