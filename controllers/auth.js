@@ -5,6 +5,7 @@ const sgMail = require('@sendgrid/mail');
 const { validationResult } = require('express-validator');
 
 const User = require('../models/user');
+const path = require('path');
 
 sgMail.setApiKey(process.env.SENDGRID_API_KEY);
 
@@ -15,13 +16,12 @@ exports.getLogin = (req, res, next) => {
     } else {
         message = null;
     }
-
     res.render('auth/login', {
         path: '/login',
         pageTitle: 'Login',
         errorMessage: message,
-        csrfToken: req.csrfToken(),
-        isAuthenticated: req.session.isLoggedIn
+        oldInput: { email: '', password: '' },
+        validationErrors: [],
     });
 }
 
@@ -36,8 +36,8 @@ exports.getSignup = (req, res, next) => {
         path: '/signup',
         pageTitle: 'Signup',
         errorMessage: message,
-        csrfToken: req.csrfToken(),
-        isAuthenticated: req.session.isLoggedIn
+        oldInput: { email: '', password: '', confirmPassword: '' },
+        validationErrors: [],
     });
 }
 
@@ -51,15 +51,21 @@ exports.postLogin = (req, res, next) => {
             path: '/login',
             pageTitle: 'Login',
             errorMessage: errors.array()[0].msg,
-            csrfToken: req.csrfToken(),
-            isAuthenticated: req.session.isLoggedIn
+            oldInput: { email: email, password: password },
+            validationErrors: errors.array()
         });
     }
     User.findOne({email: email})
             .then(user => {
                 if(!user){
-                    req.flash('error', 'Invalid email or password.');
-                    return res.redirect('/login');
+                    req.res.status(422).render('auth/login', {
+                        path: '/login',
+                        pageTitle: 'Login',
+                        errorMessage: 'Invalid email or password.',
+                        csrfToken: req.csrfToken(),
+                        oldInput: { email: email, password: password },
+                        validationErrors: []
+                    })
                 }
                 bcrypt.compare(password, user.password)
                     .then(doMatch => {
@@ -71,14 +77,18 @@ exports.postLogin = (req, res, next) => {
                                 res.redirect('/');
                             })
                         }
-                        req.flash('error', 'Invalid email or password.');
-                        res.redirect('/login');
+                        return res.status(422).render('auth/login', {
+                            path: '/login',
+                            pageTitle: 'Login',
+                            errorMessage: 'Invalid email or password.',
+                            oldInput: { email: email, password: password },
+                            validationErrors: []
+                        });
                     })
                     .catch(err => {
                         console.log(err)
                         return res.redirect('/login');
                     });
-                
             })
             .catch(err => console.log(err));
 }
@@ -86,16 +96,16 @@ exports.postLogin = (req, res, next) => {
 exports.postSignup = (req, res, next) => {
     const email = req.body.email;
     const password = req.body.password;
-    const confirmPassword = req.body.confirmPassword;
+
     const errors = validationResult(req);
     if(!errors.isEmpty()){
-        // console.log(errors.array());
+        console.log(errors.array());
         return res.status(422).render('auth/signup', {
             path: '/signup',
             pageTitle: 'Signup',
             errorMessage: errors.array()[0].msg,
-            csrfToken: req.csrfToken(),
-            isAuthenticated: req.session.isLoggedIn
+            oldInput:{ email: email, password: password, confirmPassword: req.body.confirmPassword },
+            validationErrors: errors.array(),
         });       
     }
              bcrypt.hash(password, 12)
@@ -109,12 +119,12 @@ exports.postSignup = (req, res, next) => {
                 })
                 .then(result => {
                     res.redirect('/login');
-                    return sgMail.send({
-                        to: email,
-                        from: 'rajrituraj.raj95@gmail.com',
-                        subject: 'Signup succeeded!',
-                        html: '<h1>You successfully signed up!</h1>',
-                    })
+                    // return sgMail.send({
+                    //     to: email,
+                    //     from: 'rajrituraj.raj95@gmail.com',
+                    //     subject: 'Signup succeeded!',
+                    //     html: '<h1>You successfully signed up!</h1>',
+                    // })
                 })
                 .catch(err => {
                     console.log(err);
