@@ -1,10 +1,13 @@
 const mongoose = require('mongoose');
+const fileHelper = require('../util/file');
 const Product = require('../models/product');
 // const mongodb = require('mongodb');
 
 // const ObjectId = mongodb.ObjectId;
 
 const { validationResult } = require('express-validator');
+const product = require('../models/product');
+const { file } = require('pdfkit');
 
 exports.getAddProduct = (req, res, next) => {
   let message = req.flash('error');
@@ -155,6 +158,7 @@ exports.postEditProduct = (req, res, next) => {
       product.price = updatedPrice;
       product.description = updatedDescription;
       if (image) {
+        fileHelper.deletedFile(product.imageUrl);
         product.imageUrl = image.path;
       }
       return product.save()
@@ -171,8 +175,14 @@ exports.postEditProduct = (req, res, next) => {
 
 exports.postDeleteProduct = (req, res, next) => {
   const prodId = req.body.productId;
-  // Product.findByIdAndDelete(prodId)
-  Product.deleteOne({ _id: prodId, userId: req.user._id })
+  Product.findById(prodId)
+    .then(product => {
+      if(!product) {
+        return next(new Error('Product not found.'));
+      }
+      fileHelper.deletedFile(product.imageUrl);
+      return Product.deleteOne({ _id: prodId, userId: req.user._id })
+    })
     .then(result => {
       res.redirect('/admin/products');
     })
@@ -181,4 +191,5 @@ exports.postDeleteProduct = (req, res, next) => {
       error.httpStatusCode = 500;
       return next(error);
     });
+  // Product.findByIdAndDelete(prodId)
 }
