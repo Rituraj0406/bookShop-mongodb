@@ -1,3 +1,4 @@
+const mongoose = require('mongoose');
 const Product = require('../models/product');
 // const mongodb = require('mongodb');
 
@@ -25,19 +26,32 @@ exports.getAddProduct = (req, res, next) => {
 
 exports.postAddProduct = (req, res, next) => {
   const title = req.body.title;
-  const imageUrl = req.body.imageUrl;
+  const image = req.file;
   const price = req.body.price;
   const description = req.body.description;
-
-  const errors = validationResult(req);
-  if(!errors.isEmpty()){
-    console.log(errors.array());
+  if(!image) {
     return res.status(422).render('admin/edit-product', {
-      path: '/admin/edit-product',
+      path: '/admin/add-product',
       pageTitle: 'Add Product',
       editing: false,
       hasError: true,
-      product: { title: title, imageUrl: imageUrl, price: price, description: description },
+      product: { title: title, price: price, description: description },
+      errorMessage: 'Attached file is not an image.',
+      validationErrors: []
+    });
+  }
+
+  const imageUrl = image.path;
+  const errors = validationResult(req);
+
+  if(!errors.isEmpty()){
+    console.log(errors.array());
+    return res.status(422).render('admin/edit-product', {
+      path: '/admin/add-product',
+      pageTitle: 'Add Product',
+      editing: false,
+      hasError: true,
+      product: { title: title, price: price, description: description },
       errorMessage: errors.array()[0].msg,
       validationErrors: errors.array()
     });
@@ -54,7 +68,11 @@ exports.postAddProduct = (req, res, next) => {
     // res.redirect('/');
     res.redirect('/admin/products');
   })
-  .catch(err => console.log(err));
+  .catch(err => {
+    const error  = new Error(err);
+    error.httpStatusCode = 500;
+    return next(error);
+  });
 };
 
 exports.getEditProduct = (req, res, next) => {
@@ -78,7 +96,11 @@ exports.getEditProduct = (req, res, next) => {
         validationErrors: []
       });
     })
-    .catch(err => console.log(err));
+    .catch(err => {
+      const error = new Error(err);
+      error.httpStatusCode = 500;
+      return next(error);
+    });
 };
 
 exports.getProducts = (req, res, next) => {
@@ -92,17 +114,22 @@ exports.getProducts = (req, res, next) => {
         path: '/admin/products'
       })
     })
-    .catch(err => console.log(err));
+    .catch(err => {
+      const error = new Error(err);
+      error.httpStatusCode = 500;
+      return next(error);
+    });
 };
 
 exports.postEditProduct = (req, res, next) => {
   const prodId = req.body.productId;
   const updatedTitle = req.body.title;
-  const updatedImageUrl = req.body.imageUrl;
   const updatedPrice = req.body.price;
+  const image = req.file;
   const updatedDescription = req.body.description;
 
   const errors = validationResult(req);
+
   if(!errors.isEmpty()){
     return res.status(422).render('admin/edit-product', {
       path: '/admin/edit-product',
@@ -111,8 +138,7 @@ exports.postEditProduct = (req, res, next) => {
       hasError: true,
       product: {
         _id: prodId,
-        title: updatedTitle, 
-        imageUrl: updatedImageUrl, 
+        title: updatedTitle,
         price: updatedPrice, 
         description: updatedDescription
       },
@@ -128,13 +154,19 @@ exports.postEditProduct = (req, res, next) => {
       product.title = updatedTitle;
       product.price = updatedPrice;
       product.description = updatedDescription;
-      product.imageUrl = updatedImageUrl;
-        return product.save()
-          .then(result => {
-        res.redirect('/admin/products');
-      });
+      if (image) {
+        product.imageUrl = image.path;
+      }
+      return product.save()
+        .then(result => {
+          res.redirect('/admin/products');
+        });
     })
-    .catch(err => console.log(err));
+    .catch(err => {
+      const error = new Error(err);
+      error.httpStatusCode = 500;
+      return next(error);
+    });
 }
 
 exports.postDeleteProduct = (req, res, next) => {
@@ -144,5 +176,9 @@ exports.postDeleteProduct = (req, res, next) => {
     .then(result => {
       res.redirect('/admin/products');
     })
-    .catch(err => console.log(err));
+    .catch(err => {
+      const error = new Error(err);
+      error.httpStatusCode = 500;
+      return next(error);
+    });
 }
